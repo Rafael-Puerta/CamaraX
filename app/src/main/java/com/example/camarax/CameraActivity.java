@@ -1,15 +1,21 @@
 package com.example.camarax;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Size;
 import android.view.OrientationEventListener;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -19,7 +25,10 @@ import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.File;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
+
 
 public class CameraActivity extends AppCompatActivity {
     private PreviewView previewView;
@@ -34,6 +43,7 @@ public class CameraActivity extends AppCompatActivity {
         cameraProviderFuture = ProcessCameraProvider.getInstance(this);
         textView = findViewById(R.id.orientation);
         cameraProviderFuture.addListener(new Runnable() {
+            @RequiresApi(api = Build.VERSION_CODES.R)
             @Override
             public void run() {
                 try {
@@ -44,9 +54,11 @@ public class CameraActivity extends AppCompatActivity {
                 }
             }
         }, ContextCompat.getMainExecutor(this));
+
     }
 
 
+    @RequiresApi(api = Build.VERSION_CODES.R)
     private void bindImageAnalysis(@NonNull ProcessCameraProvider cameraProvider) {
         ImageAnalysis imageAnalysis =
                 new ImageAnalysis.Builder().setTargetResolution(new Size(1280, 720))
@@ -68,7 +80,36 @@ public class CameraActivity extends AppCompatActivity {
         CameraSelector cameraSelector = new CameraSelector.Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
+        ImageCapture imageCapture =
+                new ImageCapture.Builder()
+                        .setTargetRotation(this.getDisplay().getRotation())
+                        .build();
+
+        Button b=findViewById(R.id.button5);
+        b.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Date d=new Date();
+                ImageCapture.OutputFileOptions outputFileOptions =
+                        new ImageCapture.OutputFileOptions.Builder(new File(getFilesDir()+File.separator+d.toString()+".jpg")).build();
+                imageCapture.takePicture(outputFileOptions, ContextCompat.getMainExecutor(CameraActivity.this),
+                        new ImageCapture.OnImageSavedCallback() {
+                            @Override
+                            public void onImageSaved(ImageCapture.OutputFileResults outputFileResults) {
+                                // insert your code here.
+
+                            }
+                            @Override
+                            public void onError(ImageCaptureException error) {
+                                // insert your code here.
+                            }
+                        }
+                );
+
+            }
+        });
+
         cameraProvider.bindToLifecycle((LifecycleOwner)this, cameraSelector,
-                imageAnalysis, preview);
+                imageCapture,imageAnalysis, preview);
     }
 }
